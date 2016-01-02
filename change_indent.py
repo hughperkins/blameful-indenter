@@ -155,6 +155,12 @@ def reindent(filepath, lines, indentsize=2):
 for author_email in lines_by_author:
   author_info = author_info_by_email[author_email]
   print(author_info)
+  subprocess.call([
+    'git', 'config', '--local', '--unset', 'user.name'
+  ])
+  subprocess.call([
+    'git', 'config', '--local', '--unset', 'user.email'
+  ])
   print(subprocess.check_output([
     'git', 'config', '--local', '--add', 'user.name', author_info['name']
   ]))
@@ -171,4 +177,10 @@ for author_email in lines_by_author:
   print(subprocess.check_output([
     'git', 'commit', '-m', 'automated re-indentation of ' + filename
   ]))
+  subprocess.call([
+    'git', 'config', '--local', '--unset', 'user.name'
+  ])
+  subprocess.call([
+    'git', 'config', '--local', '--unset', 'user.email'
+  ])
 
