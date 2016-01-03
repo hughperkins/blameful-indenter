@@ -118,12 +118,12 @@ def reindent(filepath, lines, indentsize=2):
 #    f.write('\n')
   f.close()
   new_num_lines = get_num_lines(filepath)
-  print('new_num_lines', new_num_lines, 'before', original_num_lines)
+#  print('new_num_lines', new_num_lines, 'before', original_num_lines)
   if new_num_lines != original_num_lines:
     raise Exception('number of lines dont match ', filepath)
 
 def process_line_info(filename, line_info):
-  print(line_info)
+#  print(line_info)
   author_email = line_info['author-mail']
   if author_email not in author_info_by_email:
     author_info = {}
@@ -140,9 +140,9 @@ def process_line_info(filename, line_info):
   lines.append(line_num)
 
 def process_file(filename):
-  print(subprocess.check_output([
+  subprocess.check_output([
     'git', 'checkout', filename
-  ]))
+  ])
   out = subprocess.check_output([
     'git', 'blame', '--line-porcelain', filename
   ])
@@ -153,9 +153,9 @@ def process_file(filename):
   #in_boundary = False
   #boundary_line = -1
   for line in out.split('\n'):
-    print('processing line [' + line + ']')
+#    print('processing line [' + line + ']')
     key = line.split(' ')[0]
-    print('key', key)
+#    print('key', key)
     if len(key) > 39 and key[0] != '\t':
       if len(line_info.keys()) > 0:
         process_line_info(filename, line_info)
@@ -186,12 +186,12 @@ def process_file(filename):
   if len(line_info.keys()) > 0:
     process_line_info(filename, line_info)
 
-  print(lines_by_file_by_author)
+#  print(lines_by_file_by_author)
 
 def write_out_changes():
   for author_email, lines_by_file in lines_by_file_by_author.iteritems():
     author_info = author_info_by_email[author_email]
-    print(author_info)
+    print('  ' + author_info['name'])
     subprocess.call([
       'git', 'config', '--local', '--unset', 'user.name'
     ])
@@ -214,14 +214,14 @@ def write_out_changes():
     ])
 #    print('diffs[' + diffs + ']')
     if diffs != '':
-      print(subprocess.check_output([
+      subprocess.check_output([
         'git', 'add', '-u'
-      ]))
-      print(subprocess.check_output([
+      ])
+      subprocess.check_output([
         'git', 'commit', '-m', 'automated re-indentations for changes by ' + author_info['name']
-      ]))
+      ])
     else:
-      print('no changes for ' + author_email + ' => skipping commit')
+      print('  no changes => skipping')
     subprocess.call([
       'git', 'config', '--local', '--unset', 'user.name'
     ])
@@ -234,6 +234,11 @@ if __name__ == '__main__':
   # we need to:
   # - first extract all authors, get line info
   # - write out all files for all authors
+  print('Reading blames from files:')
   for filename in filenames:
+    print('  ' + filename)
     process_file(filename)
+  print('Writing out changes:')
   write_out_changes()
+  print('All done')
+
