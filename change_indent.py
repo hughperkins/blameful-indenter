@@ -43,13 +43,13 @@ def process_line_info(line_info):
 
 line_num = 0  # 1-based, otherwise inconsistent with all of: lua, text editors, and git blame output
 line_info = {}
-in_boundary = False
-boundary_line = -1
+#in_boundary = False
+#boundary_line = -1
 for line in out.split('\n'):
   print('processing line [' + line + ']')
   key = line.split(' ')[0]
   print('key', key)
-  if len(key) > 39:
+  if len(key) > 39 and key[0] != '\t':
     if len(line_info.keys()) > 0:
       process_line_info(line_info)
 
@@ -58,20 +58,22 @@ for line in out.split('\n'):
     line_info = {}
     line_info['line_num'] = line_num
     continue
-  if in_boundary:
-    if boundary_line == 2:
-      line_info['contents'] = line.rstrip()[1:]
-    boundary_line = boundary_line + 1
-  else:
-    if key == 'boundary':
-      in_boundary = True
-      boundary_line = 1
-    else:
-      if key is not None and key != '' and len(key) < 40:
-        value = line.strip().replace(key + ' ', '')
-        if value.strip() != '':
-          if key in ['author', 'author-mail', 'summary']:
-            line_info[key] = value
+#  if in_boundary:
+#    if boundary_line == 2:
+#      line_info['contents'] = line.rstrip()[1:]
+#    boundary_line = boundary_line + 1
+#  else:
+#    if key == 'boundary':
+#      in_boundary = True
+#      boundary_line = 1
+#    else:
+  if key is not None and key != '' and len(key) < 40:
+    value = line.strip().replace(key + ' ', '')
+    if value.strip() != '':
+      if key in ['author', 'author-mail', 'summary']:
+        line_info[key] = value
+  elif len(key) > 1 and key[0] == '\t':
+    line_info['contents'] = line.rstrip()[1:]
 if len(line_info.keys()) > 0:
   process_line_info(line_info)
 
