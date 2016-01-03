@@ -71,6 +71,8 @@ for line in out.split('\n'):
     value = line.strip().replace(key + ' ', '')
     if value.strip() != '':
       if key in ['author', 'author-mail', 'summary']:
+        if key == 'author-mail':
+          value = value.replace('.(none)', '')  # for pc-wolf###.(none)
         line_info[key] = value
   elif len(key) > 1 and key[0] == '\t':
     line_info['contents'] = line.rstrip()[1:]
