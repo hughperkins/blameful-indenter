@@ -22,7 +22,7 @@ print(subprocess.check_output([
 out = subprocess.check_output([
   'git', 'blame', '--line-porcelain', filename
 ])
-print('out', out)
+#print('out', out)
 
 author_info_by_email = {}
 
@@ -46,7 +46,9 @@ line_info = {}
 in_boundary = False
 boundary_line = -1
 for line in out.split('\n'):
+  print('processing line [' + line + ']')
   key = line.split(' ')[0]
+  print('key', key)
   if len(key) > 39:
     if len(line_info.keys()) > 0:
       process_line_info(line_info)
@@ -75,7 +77,16 @@ if len(line_info.keys()) > 0:
 
 print(lines_by_author)
 
+def get_num_lines(filepath):
+  num_lines = int(subprocess.check_output([
+    'wc', '-l', filepath
+  ]).split()[0])
+  return num_lines
+
 def reindent(filepath, lines, indentsize=2):
+  original_num_lines = get_num_lines(filepath)
+#  print('original_num_lines', original_num_lines)
+
   f = open(filepath, 'r')
   contents = f.read()
   f.close()
@@ -89,6 +100,8 @@ def reindent(filepath, lines, indentsize=2):
   in_code_block = False
   block_indent = 0
   next_block_indent = 0
+  if contents.endswith('\n'):
+    contents = contents[:-1]
   for line in contents.split('\n'):
     original_line = line
     line = line.strip()
@@ -142,15 +155,21 @@ def reindent(filepath, lines, indentsize=2):
     if excess_brackets < 0 and (pc[0] == ')' or pc[0] == '}'):
       indent = nextindent
     if line_num in lines:
+#      print(line_num, 'writing modified line [', original_line, ']')
       f.write(' ' * (indentsize * indent) + prefix + pc + comments + '\n')
     else:
+#      print(line_num, 'writing original line [', original_line, ']')
       f.write(original_line + '\n')
     indent = nextindent
     last_line = line
     line_num = line_num + 1
-  if last_line != '':
-    f.write('\n')
+#  if last_line != '':
+#    f.write('\n')
   f.close()
+  new_num_lines = get_num_lines(filepath)
+  print('new_num_lines', new_num_lines, 'before', original_num_lines)
+  if new_num_lines != original_num_lines:
+    raise Exception('number of lines dont match ', filepath)
 
 for author_email in lines_by_author:
   author_info = author_info_by_email[author_email]
@@ -161,22 +180,29 @@ for author_email in lines_by_author:
   subprocess.call([
     'git', 'config', '--local', '--unset', 'user.email'
   ])
-  print(subprocess.check_output([
+  subprocess.check_output([
     'git', 'config', '--local', '--add', 'user.name', author_info['name']
-  ]))
-  print(subprocess.check_output([
+  ])
+  subprocess.check_output([
     'git', 'config', '--local', '--add', 'user.email', author_email
-  ]))
-  print(subprocess.check_output([
+  ])
+  subprocess.check_output([
     'git', 'config', '--local', '-l'
-  ]))
+  ])
   reindent(filename, lines_by_author[author_email])
-  print(subprocess.check_output([
-    'git', 'add', filename
-  ]))
-  print(subprocess.check_output([
-    'git', 'commit', '-m', 'automated re-indentation of ' + filename
-  ]))
+  diffs = subprocess.check_output([
+    'git', 'diff', filename
+  ])
+  print('diffs[' + diffs + ']')
+  if diffs != '':
+    print(subprocess.check_output([
+      'git', 'add', filename
+    ]))
+    print(subprocess.check_output([
+      'git', 'commit', '-m', 'automated re-indentation of ' + filename
+    ]))
+  else:
+    print('no changes to ' + filename + ' => skipping commit')
   subprocess.call([
     'git', 'config', '--local', '--unset', 'user.name'
   ])
