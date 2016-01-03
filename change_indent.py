@@ -15,71 +15,8 @@ from os import path
 import subprocess
 
 
-filename=sys.argv[1]
-print(subprocess.check_output([
-  'git', 'checkout', filename
-]))
-out = subprocess.check_output([
-  'git', 'blame', '--line-porcelain', filename
-])
-#print('out', out)
-
+lines_by_file_by_author = {}
 author_info_by_email = {}
-
-lines_by_author = {}
-
-def process_line_info(line_info):
-  print(line_info)
-  author_email = line_info['author-mail']
-  if author_email not in author_info_by_email:
-    author_info = {}
-    author_info['email'] = author_email
-    author_info['name'] = line_info['author']
-    author_info_by_email[author_email] = author_info
-  line_num = line_info['line_num']
-  if author_email not in lines_by_author:
-    lines_by_author[author_email] = []
-  lines_by_author[author_email].append(line_num)
-
-line_num = 0  # 1-based, otherwise inconsistent with all of: lua, text editors, and git blame output
-line_info = {}
-#in_boundary = False
-#boundary_line = -1
-for line in out.split('\n'):
-  print('processing line [' + line + ']')
-  key = line.split(' ')[0]
-  print('key', key)
-  if len(key) > 39 and key[0] != '\t':
-    if len(line_info.keys()) > 0:
-      process_line_info(line_info)
-
-    in_boundary = False
-    line_num = line_num + 1
-    line_info = {}
-    line_info['line_num'] = line_num
-    continue
-#  if in_boundary:
-#    if boundary_line == 2:
-#      line_info['contents'] = line.rstrip()[1:]
-#    boundary_line = boundary_line + 1
-#  else:
-#    if key == 'boundary':
-#      in_boundary = True
-#      boundary_line = 1
-#    else:
-  if key is not None and key != '' and len(key) < 40:
-    value = line.strip().replace(key + ' ', '')
-    if value.strip() != '':
-      if key in ['author', 'author-mail', 'summary']:
-        if key == 'author-mail':
-          value = value.replace('.(none)', '')  # for pc-wolf###.(none)
-        line_info[key] = value
-  elif len(key) > 1 and key[0] == '\t':
-    line_info['contents'] = line.rstrip()[1:]
-if len(line_info.keys()) > 0:
-  process_line_info(line_info)
-
-print(lines_by_author)
 
 def get_num_lines(filepath):
   num_lines = int(subprocess.check_output([
@@ -175,42 +112,118 @@ def reindent(filepath, lines, indentsize=2):
   if new_num_lines != original_num_lines:
     raise Exception('number of lines dont match ', filepath)
 
-for author_email in lines_by_author:
-  author_info = author_info_by_email[author_email]
-  print(author_info)
-  subprocess.call([
-    'git', 'config', '--local', '--unset', 'user.name'
-  ])
-  subprocess.call([
-    'git', 'config', '--local', '--unset', 'user.email'
-  ])
-  subprocess.check_output([
-    'git', 'config', '--local', '--add', 'user.name', author_info['name']
-  ])
-  subprocess.check_output([
-    'git', 'config', '--local', '--add', 'user.email', author_email
-  ])
-  subprocess.check_output([
-    'git', 'config', '--local', '-l'
-  ])
-  reindent(filename, lines_by_author[author_email])
-  diffs = subprocess.check_output([
-    'git', 'diff', filename
-  ])
-  print('diffs[' + diffs + ']')
-  if diffs != '':
-    print(subprocess.check_output([
-      'git', 'add', filename
-    ]))
-    print(subprocess.check_output([
-      'git', 'commit', '-m', 'automated re-indentation of ' + filename
-    ]))
-  else:
-    print('no changes to ' + filename + ' => skipping commit')
-  subprocess.call([
-    'git', 'config', '--local', '--unset', 'user.name'
-  ])
-  subprocess.call([
-    'git', 'config', '--local', '--unset', 'user.email'
-  ])
+def process_line_info(filename, line_info):
+  print(line_info)
+  author_email = line_info['author-mail']
+  if author_email not in author_info_by_email:
+    author_info = {}
+    author_info['email'] = author_email
+    author_info['name'] = line_info['author']
+    author_info_by_email[author_email] = author_info
+  line_num = line_info['line_num']
+  if author_email not in lines_by_file_by_author:
+    lines_by_file_by_author[author_email] = {}
+  lines_by_file = lines_by_file_by_author[author_email]
+  if filename not in lines_by_file:
+    lines_by_file[filename] = []
+  lines = lines_by_file[filename]
+  lines.append(line_num)
 
+def process_file(filename):
+  print(subprocess.check_output([
+    'git', 'checkout', filename
+  ]))
+  out = subprocess.check_output([
+    'git', 'blame', '--line-porcelain', filename
+  ])
+  #print('out', out)
+
+  line_num = 0  # 1-based, otherwise inconsistent with all of: lua, text editors, and git blame output
+  line_info = {}
+  #in_boundary = False
+  #boundary_line = -1
+  for line in out.split('\n'):
+    print('processing line [' + line + ']')
+    key = line.split(' ')[0]
+    print('key', key)
+    if len(key) > 39 and key[0] != '\t':
+      if len(line_info.keys()) > 0:
+        process_line_info(filename, line_info)
+
+      in_boundary = False
+      line_num = line_num + 1
+      line_info = {}
+      line_info['line_num'] = line_num
+      continue
+  #  if in_boundary:
+  #    if boundary_line == 2:
+  #      line_info['contents'] = line.rstrip()[1:]
+  #    boundary_line = boundary_line + 1
+  #  else:
+  #    if key == 'boundary':
+  #      in_boundary = True
+  #      boundary_line = 1
+  #    else:
+    if key is not None and key != '' and len(key) < 40:
+      value = line.strip().replace(key + ' ', '')
+      if value.strip() != '':
+        if key in ['author', 'author-mail', 'summary']:
+          if key == 'author-mail':
+            value = value.replace('.(none)', '')  # for pc-wolf###.(none)
+          line_info[key] = value
+    elif len(key) > 1 and key[0] == '\t':
+      line_info['contents'] = line.rstrip()[1:]
+  if len(line_info.keys()) > 0:
+    process_line_info(filename, line_info)
+
+  print(lines_by_file_by_author)
+
+def write_out_changes():
+  for author_email, lines_by_file in lines_by_file_by_author.iteritems():
+    author_info = author_info_by_email[author_email]
+    print(author_info)
+    subprocess.call([
+      'git', 'config', '--local', '--unset', 'user.name'
+    ])
+    subprocess.call([
+      'git', 'config', '--local', '--unset', 'user.email'
+    ])
+    subprocess.check_output([
+      'git', 'config', '--local', '--add', 'user.name', author_info['name']
+    ])
+    subprocess.check_output([
+      'git', 'config', '--local', '--add', 'user.email', author_email
+    ])
+#    subprocess.check_output([
+#      'git', 'config', '--local', '-l'
+#    ])
+    for filename, lines in lines_by_file.iteritems():
+      reindent(filename, lines)
+    diffs = subprocess.check_output([
+      'git', 'diff'
+    ])
+#    print('diffs[' + diffs + ']')
+    if diffs != '':
+      print(subprocess.check_output([
+        'git', 'add', '-u'
+      ]))
+      print(subprocess.check_output([
+        'git', 'commit', '-m', 'automated re-indentations for changes by ' + author_info['name']
+      ]))
+    else:
+      print('no changes for ' + author_email + ' => skipping commit')
+    subprocess.call([
+      'git', 'config', '--local', '--unset', 'user.name'
+    ])
+    subprocess.call([
+      'git', 'config', '--local', '--unset', 'user.email'
+    ])
+
+if __name__ == '__main__':
+  filenames=sys.argv[1:]
+  # we need to:
+  # - first extract all authors, get line info
+  # - write out all files for all authors
+  for filename in filenames:
+    process_file(filename)
+  write_out_changes()
