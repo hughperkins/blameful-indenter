@@ -7,6 +7,16 @@ You can use this under the BSDv2 license
 This script re-indent files, without changing git blame.  It will create
 a new commit for each author present in the original blame, with commit message
 'automated re-indentation'
+
+Usage:
+
+  python change_indent.py Abs.lua
+
+You can put multiple files, and changes will be grouped by author, across *all* provided files, so
+that there will be one commit per author (rather than one commit per author per file...)
+
+  python change_indent.py *.lua
+
 """
 
 import sys
