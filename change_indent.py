@@ -221,7 +221,7 @@ def write_out_changes():
         'git', 'commit', '-m', 'automated re-indentations for changes by ' + author_info['name']
       ])
     else:
-      print('  no changes => skipping')
+      print('    no changes => skipping')
     subprocess.call([
       'git', 'config', '--local', '--unset', 'user.name'
     ])
