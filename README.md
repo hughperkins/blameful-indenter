@@ -4,6 +4,8 @@ reindent code, whilst preserving git blame
 
 # To use
 
+## Single file
+
 eg:
 ```
 python change_indent.py Abs.lua
@@ -65,4 +67,17 @@ bc7b818d (Ronan Collobert 2016-01-02 16:19:28 +0800 21)   return self.gradInput
 bc7b818d (Ronan Collobert 2016-01-02 16:19:28 +0800 23) 
 66ab53f4 (Andreas Köpf    2016-01-02 16:19:28 +0800 24) 
 ```
+
+## Batch usage
+
+You can pass in multiple files in one go.  They will be processed as a single batch.  One commit will be created per author, containing changes across *all* files.  This reduces the number of needed commits to be `O(A)` in number of authors, `A`, rather than `O(A*F)`, where `F` is number of files.
+
+```
+python change_indent.py *.lua
+```
+
+# Changes
+
+* January 3rd:
+  * can now pass multiple files (eg '*.lua'), and all will be processed as one single batch
 
