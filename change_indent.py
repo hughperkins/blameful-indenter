@@ -34,7 +34,7 @@ def get_num_lines(filepath):
   ]).split()[0])
   return num_lines
 
-def reindent(filepath, lines, indentsize=2):
+def reindent(filepath, lines, indentsize=3):
   original_num_lines = get_num_lines(filepath)
 #  print('original_num_lines', original_num_lines)
 
@@ -107,7 +107,11 @@ def reindent(filepath, lines, indentsize=2):
       indent = nextindent
     if line_num in lines:
 #      print(line_num, 'writing modified line [', original_line, ']')
-      f.write(' ' * (indentsize * indent) + prefix + pc + comments + '\n')
+      final_line = ' ' * (indentsize * indent) + prefix + pc + comments
+      if final_line.strip() == '':  # dont want trailing spaces probably
+        f.write('\n')
+      else:
+        f.write(final_line + '\n')
     else:
 #      print(line_num, 'writing original line [', original_line, ']')
       f.write(original_line + '\n')
