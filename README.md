@@ -4,11 +4,20 @@ reindent code, whilst preserving git blame
 
 # To use
 
+- do one or both of:
+  - run `propose_indents.py`, to generate `.proposed`-suffixed files, with the proposed indentation
+  - create/modify the `.proposed`-suffixed files, with your desired indentation
+    - make sure not to change the number of lines, or move lines around, or the results wont match your expectations ;-)
+- run `commit_indents.py`, to write out the changes in `.proposed` files, preserving the original blame
+
+Both scripts take as parameters a list of one or more filenames
+
 ## Single file
 
 eg:
 ```
-python change_indent.py Abs.lua
+python propose_indents.py Abs.lua
+python commits_indents.py Abs.lua
 ```
 
 git blame before:
@@ -73,11 +82,16 @@ bc7b818d (Ronan Collobert 2016-01-02 16:19:28 +0800 23)
 You can pass in multiple files in one go.  They will be processed as a single batch.  One commit will be created per author, containing changes across *all* files.  This reduces the number of needed commits to be `O(A)` in number of authors, `A`, rather than `O(A*F)`, where `F` is number of files.
 
 ```
-python change_indent.py *.lua
+python propose_indents.py *.lua
+python commits_indents.py *.lua
 ```
+You are *strongly* recommended to check the contents of the `.proposed` files generated, prior to committing.  Determining lua indentation
+is tricky, and it's hard to generate simple heuristics to handle it, without writing a full-blown lua parser, which this isn't.
 
 # Changes
 
+* February 22nd:
+  * two phases now: first generate `.proposed` files, then commit these, with a second script, so easier to control/modify the changes
 * January 3rd:
   * can now pass multiple files (eg '*.lua'), and all will be processed as one single batch
 
